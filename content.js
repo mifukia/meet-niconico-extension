@@ -5,7 +5,7 @@
   let isEnabled = true;
   let commentContainer = null;
   let observer = null;
-  let processedMessages = new Set();
+  let processedMessages = new Map(); // テキスト -> タイムスタンプ
 
   // コメントコンテナを作成
   function createCommentContainer() {
@@ -69,73 +69,63 @@
 
   // メッセージを抽出して流す
   function extractAndFlowMessage(element) {
-    // Google Meet 2024年版のDOM構造に対応
-    // メッセージコンテナ: .Ss4fHf
-    // 送信者名: .poVWob
-    // メッセージ本文: div[jsname="dTKtvb"] > div
-    // メッセージID: .RLrADb[data-message-id]
+    // アプローチ: div[jsname="dTKtvb"] を直接探して、テキスト内容をキーにする
+    // Google Meet は同じメッセージに複数の data-message-id を付けることがあるため
 
-    // パターン1: メッセージコンテナ (.Ss4fHf) が追加された場合
-    const messageContainers = element.classList?.contains('Ss4fHf')
-      ? [element]
-      : element.querySelectorAll
-        ? Array.from(element.querySelectorAll('.Ss4fHf'))
-        : [];
+    // jsname="dTKtvb" を持つ要素を探す（メッセージ本文コンテナ）
+    const textContainers = element.querySelectorAll
+      ? Array.from(element.querySelectorAll('div[jsname="dTKtvb"]'))
+      : [];
 
-    messageContainers.forEach((container) => {
-      // メッセージIDを取得して重複チェック
-      const messageEl = container.querySelector('.RLrADb[data-message-id]');
-      const messageId = messageEl?.getAttribute('data-message-id');
+    // element 自身が jsname="dTKtvb" を持つ場合も追加
+    if (element.matches?.('div[jsname="dTKtvb"]')) {
+      textContainers.push(element);
+    }
 
-      if (messageId && processedMessages.has(messageId)) {
-        return; // 既に処理済み
+    textContainers.forEach((textContainer) => {
+      // テキストを取得
+      const textDiv = textContainer.querySelector('div');
+      const text = textDiv?.textContent?.trim() || textContainer.textContent?.trim();
+
+      if (!text || text.length === 0) return;
+
+      // ユニークキーを作成（テキスト + タイムスタンプの組み合わせ）
+      // 近い時間内の同じテキストは重複とみなす
+      const now = Date.now();
+      const textKey = `text:${text}`;
+
+      // 同じテキストが最近処理されたかチェック（500ms以内）
+      if (processedMessages.has(textKey)) {
+        const lastTime = processedMessages.get(textKey);
+        if (now - lastTime < 500) {
+          return; // 重複としてスキップ
+        }
       }
 
-      // 送信者名を取得
-      const senderEl = container.querySelector('.poVWob');
+      // 送信者名を取得（親コンテナから）
+      const container = textContainer.closest('.Ss4fHf');
+      const senderEl = container?.querySelector('.poVWob');
       const sender = senderEl?.textContent?.trim();
 
-      // メッセージ本文を取得
-      const textEl = container.querySelector('div[jsname="dTKtvb"] > div');
-      const text = textEl?.textContent?.trim();
+      console.log('[Meet Niconico] DEBUG:', {
+        text,
+        sender,
+        textKey
+      });
 
-      if (text && text.length > 0) {
-        // メッセージIDがあれば使用、なければテキストベースでIDを生成
-        const id = messageId || `${text.slice(0, 30)}_${Date.now()}`;
+      // 処理済みとして記録（タイムスタンプ付き）
+      processedMessages.set(textKey, now);
+      flowComment(text, sender);
+      console.log('[Meet Niconico] New message:', sender, text);
 
-        if (!processedMessages.has(id)) {
-          processedMessages.add(id);
-          flowComment(text, sender);
-          console.log('[Meet Niconico] New message:', sender, text);
-        }
-      }
+      // AI用にバックグラウンドに送信
+      sendToBackground(sender, text);
     });
-
-    // パターン2: data-message-id を持つ要素が直接追加された場合
-    if (element.hasAttribute?.('data-message-id')) {
-      const messageId = element.getAttribute('data-message-id');
-      if (!processedMessages.has(messageId)) {
-        // 親要素から情報を取得
-        const container = element.closest('.Ss4fHf');
-        if (container) {
-          const senderEl = container.querySelector('.poVWob');
-          const sender = senderEl?.textContent?.trim();
-          const textEl = container.querySelector('div[jsname="dTKtvb"] > div');
-          const text = textEl?.textContent?.trim();
-
-          if (text) {
-            processedMessages.add(messageId);
-            flowComment(text, sender);
-            console.log('[Meet Niconico] New message (pattern 2):', sender, text);
-          }
-        }
-      }
-    }
 
     // processedMessages が大きくなりすぎないように管理
     if (processedMessages.size > 1000) {
-      const arr = Array.from(processedMessages);
-      processedMessages = new Set(arr.slice(-500));
+      const entries = Array.from(processedMessages.entries());
+      processedMessages = new Map(entries.slice(-500));
     }
   }
 
@@ -167,10 +157,51 @@
     flowComment(text || 'テストコメント', 'テストユーザー');
   };
 
-  // ポップアップからのメッセージを受信
+  // バックグラウンドにメッセージを送信（AI用）
+  function sendToBackground(author, text) {
+    chrome.runtime.sendMessage({
+      type: 'NEW_CHAT_MESSAGE',
+      author: author || '匿名',
+      text: text
+    }).catch(() => {
+      // バックグラウンドが応答しない場合は無視
+    });
+  }
+
+  // AIコメントを流す（色を変えて区別）
+  function flowAIComment(text) {
+    if (!isEnabled || !commentContainer) return;
+
+    const comment = document.createElement('div');
+    comment.className = 'niconico-comment ai-comment';
+
+    // AIのコメントには絵文字プレフィックスを付ける
+    comment.textContent = `🤖 ${text}`;
+
+    // 縦位置をランダムに設定
+    const randomY = Math.random() * 80 + 5;
+    comment.style.top = `${randomY}%`;
+
+    // AIコメントは少し長めに表示
+    comment.style.animationDuration = '8s';
+
+    commentContainer.appendChild(comment);
+
+    comment.addEventListener('animationend', () => {
+      comment.remove();
+    });
+
+    console.log('[Meet Niconico] AI Comment:', text);
+  }
+
+  // ポップアップ・バックグラウンドからのメッセージを受信
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.type === 'TEST_COMMENT') {
       flowComment(message.text || 'テストコメント', 'テスト');
+      sendResponse({ success: true });
+    }
+    if (message.type === 'AI_COMMENT') {
+      flowAIComment(message.text);
       sendResponse({ success: true });
     }
     return true;

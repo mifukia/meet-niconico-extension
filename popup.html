@@ -183,6 +183,19 @@
     </label>
   </div>
 
+  <div class="toggle-container">
+    <span class="toggle-label">AIコメント</span>
+    <label class="toggle">
+      <input type="checkbox" id="aiToggle">
+      <span class="slider"></span>
+    </label>
+  </div>
+
+  <div class="api-section" id="apiSection" style="display: none;">
+    <input type="password" id="apiKeyInput" class="test-input" placeholder="Anthropic API キーを入力...">
+    <button id="saveApiKey" class="test-btn" style="background: linear-gradient(135deg, #4CAF50, #45a049); margin-bottom: 8px;">💾 APIキーを保存</button>
+  </div>
+
   <div class="test-section">
     <input type="text" id="testInput" class="test-input" placeholder="テストコメントを入力...">
     <button id="testBtn" class="test-btn">🚀 テスト送信</button>
