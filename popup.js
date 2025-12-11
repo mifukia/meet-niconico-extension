@@ -6,18 +6,30 @@ document.addEventListener('DOMContentLoaded', () => {
   const apiSection = document.getElementById('apiSection');
   const apiKeyInput = document.getElementById('apiKeyInput');
   const saveApiKeyBtn = document.getElementById('saveApiKey');
+  const agendaInput = document.getElementById('agendaInput');
+  const saveAgendaBtn = document.getElementById('saveAgendaBtn');
+  const csvImport = document.getElementById('csvImport');
+  const jsonImport = document.getElementById('jsonImport');
   const testInput = document.getElementById('testInput');
   const testBtn = document.getElementById('testBtn');
   const status = document.getElementById('status');
 
   // 設定を読み込む
-  chrome.storage.sync.get(['enabled', 'aiEnabled', 'apiKey'], (result) => {
+  chrome.storage.sync.get(['enabled', 'aiEnabled', 'apiKey', 'agendas'], (result) => {
     enableToggle.checked = result.enabled !== false;
     aiToggle.checked = result.aiEnabled === true;
     apiSection.style.display = result.aiEnabled ? 'block' : 'none';
     if (result.apiKey) {
       apiKeyInput.value = '••••••••••••••••';
       apiKeyInput.dataset.saved = 'true';
+    }
+    // アジェンダを復元
+    if (result.agendas) {
+      const lines = Object.entries(result.agendas)
+        .sort(([a], [b]) => Number(a) - Number(b))
+        .map(([num, text]) => `${num}: ${text}`)
+        .join('\n');
+      agendaInput.value = lines;
     }
   });
 
@@ -63,6 +75,224 @@ document.addEventListener('DOMContentLoaded', () => {
       showStatus('APIキーを保存しました！', 'success');
     });
   });
+
+  // アジェンダ保存
+  saveAgendaBtn.addEventListener('click', () => {
+    const text = agendaInput.value.trim();
+    const agendas = {};
+
+    // パース: "1: テキスト" または "1. テキスト" 形式
+    const lines = text.split('\n');
+    lines.forEach((line) => {
+      const match = line.match(/^(\d+)[:\.\s]\s*(.+)$/);
+      if (match) {
+        agendas[match[1]] = match[2].trim();
+      }
+    });
+
+    if (Object.keys(agendas).length === 0 && text.length > 0) {
+      showStatus('形式: "1: テキスト" で入力してください', 'info');
+      return;
+    }
+
+    chrome.storage.sync.set({ agendas }, () => {
+      showStatus(`${Object.keys(agendas).length}件のアジェンダを保存しました！`, 'success');
+    });
+  });
+
+  // CSVインポート
+  csvImport.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const csvText = event.target.result;
+      const agendas = parseCSV(csvText);
+
+      if (Object.keys(agendas).length === 0) {
+        showStatus('CSVからアジェンダを読み取れませんでした', 'info');
+        return;
+      }
+
+      // テキストエリアに反映
+      const lines = Object.entries(agendas)
+        .sort(([a], [b]) => Number(a) - Number(b))
+        .map(([num, text]) => `${num}: ${text}`)
+        .join('\n');
+      agendaInput.value = lines;
+
+      // 保存
+      chrome.storage.sync.set({ agendas }, () => {
+        showStatus(`CSVから${Object.keys(agendas).length}件のアジェンダをインポートしました！`, 'success');
+      });
+    };
+    reader.readAsText(file);
+
+    // 同じファイルを再選択できるようにリセット
+    e.target.value = '';
+  });
+
+  // AI/MDインポート（Claude変換結果 or Notion MDエクスポート）
+  jsonImport.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target.result.trim();
+      let agendas = {};
+
+      // 1. まずJSONとして解析を試みる
+      try {
+        // JSONブロックから抽出（```json ... ``` の場合も対応）
+        const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/);
+        if (jsonMatch) {
+          agendas = JSON.parse(jsonMatch[1]);
+        } else if (text.startsWith('{')) {
+          agendas = JSON.parse(text);
+        }
+      } catch (err) {
+        // JSONではない場合は無視
+      }
+
+      // 2. JSONで取れなかった場合はMarkdownとして解析
+      if (Object.keys(agendas).length === 0) {
+        agendas = parseMarkdown(text);
+      }
+
+      if (Object.keys(agendas).length === 0) {
+        showStatus('アジェンダを読み取れませんでした', 'info');
+        return;
+      }
+
+      // テキストエリアに反映
+      const lines = Object.entries(agendas)
+        .sort(([a], [b]) => Number(a) - Number(b))
+        .map(([num, text]) => `${num}: ${text}`)
+        .join('\n');
+      agendaInput.value = lines;
+
+      // 保存
+      chrome.storage.sync.set({ agendas }, () => {
+        showStatus(`${Object.keys(agendas).length}件のアジェンダをインポートしました！`, 'success');
+      });
+    };
+    reader.readAsText(file);
+
+    e.target.value = '';
+  });
+
+  // Markdown解析関数（Notionエクスポート対応）
+  function parseMarkdown(mdText) {
+    const agendas = {};
+    const lines = mdText.split(/\r?\n/);
+    let agendaNum = 1;
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+
+      // パターン1: 番号付きリスト "1. テキスト" or "1) テキスト"
+      const numberedMatch = trimmed.match(/^(\d+)[\.\)]\s+(.+)$/);
+      if (numberedMatch) {
+        agendas[numberedMatch[1]] = numberedMatch[2].trim();
+        continue;
+      }
+
+      // パターン2: チェックリスト "- [ ] テキスト" or "- [x] テキスト"
+      const checklistMatch = trimmed.match(/^-\s+\[[ x]\]\s+(.+)$/i);
+      if (checklistMatch) {
+        agendas[agendaNum.toString()] = checklistMatch[1].trim();
+        agendaNum++;
+        continue;
+      }
+
+      // パターン3: 箇条書き "- テキスト" or "* テキスト"
+      const bulletMatch = trimmed.match(/^[-*]\s+(.+)$/);
+      if (bulletMatch) {
+        agendas[agendaNum.toString()] = bulletMatch[1].trim();
+        agendaNum++;
+        continue;
+      }
+
+      // パターン4: 見出し "## テキスト" (h2以下)
+      const headingMatch = trimmed.match(/^#{2,}\s+(.+)$/);
+      if (headingMatch) {
+        agendas[agendaNum.toString()] = headingMatch[1].trim();
+        agendaNum++;
+        continue;
+      }
+    }
+
+    return agendas;
+  }
+
+  // CSV解析関数
+  function parseCSV(csvText) {
+    const agendas = {};
+    const lines = csvText.split(/\r?\n/);
+
+    // ヘッダー行をスキップするかどうか判定
+    let startIndex = 0;
+    if (lines.length > 0) {
+      const firstLine = lines[0].toLowerCase();
+      // Notionのエクスポートでよくあるヘッダーをチェック
+      if (firstLine.includes('name') || firstLine.includes('title') || firstLine.includes('番号') || firstLine.includes('アジェンダ')) {
+        startIndex = 1;
+      }
+    }
+
+    let agendaNum = 1;
+    for (let i = startIndex; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line) continue;
+
+      // CSVの各行を解析（カンマ区切り、引用符対応）
+      const columns = parseCSVLine(line);
+      if (columns.length === 0) continue;
+
+      // パターン1: "番号, テキスト" 形式
+      if (columns.length >= 2 && /^\d+$/.test(columns[0].trim())) {
+        agendas[columns[0].trim()] = columns[1].trim();
+      }
+      // パターン2: テキストのみ（自動採番）
+      else if (columns[0].trim()) {
+        agendas[agendaNum.toString()] = columns[0].trim();
+        agendaNum++;
+      }
+    }
+
+    return agendas;
+  }
+
+  // CSVの1行を解析（引用符対応）
+  function parseCSVLine(line) {
+    const result = [];
+    let current = '';
+    let inQuotes = false;
+
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+
+      if (char === '"') {
+        if (inQuotes && line[i + 1] === '"') {
+          current += '"';
+          i++;
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (char === ',' && !inQuotes) {
+        result.push(current);
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+    result.push(current);
+
+    return result;
+  }
 
   // テスト送信
   testBtn.addEventListener('click', () => {

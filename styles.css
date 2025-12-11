@@ -94,3 +94,126 @@
     0 0 10px rgba(0, 255, 255, 0.5),
     0 0 20px rgba(0, 255, 255, 0.3);
 }
+
+/* アジェンダ表示コンテナ（現在のアジェンダ、右上に表示） */
+#niconico-agenda-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  left: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 24px;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.95) 0%, rgba(118, 75, 162, 0.95) 100%);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  z-index: 10000;
+  pointer-events: none;
+  font-family: 'Hiragino Kaku Gothic ProN', 'メイリオ', sans-serif;
+  animation: agenda-fade-in 0.3s ease-out;
+}
+
+@keyframes agenda-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+#niconico-agenda-container .agenda-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  font-size: 18px;
+  font-weight: bold;
+  color: #ffffff;
+}
+
+#niconico-agenda-container .agenda-text {
+  font-size: 20px;
+  font-weight: bold;
+  color: #ffffff;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  max-width: 500px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 全体アジェンダリスト表示 */
+#niconico-agenda-list {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  padding: 16px;
+  background: linear-gradient(135deg, rgba(30, 30, 50, 0.95) 0%, rgba(40, 40, 70, 0.95) 100%);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  z-index: 10000;
+  pointer-events: none;
+  font-family: 'Hiragino Kaku Gothic ProN', 'メイリオ', sans-serif;
+  animation: agenda-fade-in 0.3s ease-out;
+  max-width: 400px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+#niconico-agenda-list .agenda-list-title {
+  font-size: 14px;
+  font-weight: bold;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+#niconico-agenda-list .agenda-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 10px;
+  margin-bottom: 4px;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+#niconico-agenda-list .agenda-item.active {
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.8) 0%, rgba(118, 75, 162, 0.8) 100%);
+}
+
+#niconico-agenda-list .agenda-item.inactive {
+  opacity: 0.6;
+}
+
+#niconico-agenda-list .agenda-item .item-number {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: bold;
+  color: #ffffff;
+}
+
+#niconico-agenda-list .agenda-item.active .item-number {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+#niconico-agenda-list .agenda-item .item-text {
+  font-size: 14px;
+  color: #ffffff;
+  line-height: 1.4;
+}

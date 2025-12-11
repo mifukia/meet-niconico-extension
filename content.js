@@ -4,8 +4,12 @@
 
   let isEnabled = true;
   let commentContainer = null;
+  let agendaContainer = null;
+  let agendaListContainer = null;
+  let currentAgendaNum = null;
   let observer = null;
   let processedMessages = new Map(); // テキスト -> タイムスタンプ
+  let agendas = {}; // アジェンダリスト
 
   // コメントコンテナを作成
   function createCommentContainer() {
@@ -16,6 +20,115 @@
     document.body.appendChild(commentContainer);
 
     return commentContainer;
+  }
+
+  // アジェンダ表示コンテナを作成（現在のアジェンダ）
+  function createAgendaContainer() {
+    if (agendaContainer) return agendaContainer;
+
+    agendaContainer = document.createElement('div');
+    agendaContainer.id = 'niconico-agenda-container';
+    agendaContainer.style.display = 'none';
+    document.body.appendChild(agendaContainer);
+
+    return agendaContainer;
+  }
+
+  // 全体アジェンダリストコンテナを作成
+  function createAgendaListContainer() {
+    if (agendaListContainer) return agendaListContainer;
+
+    agendaListContainer = document.createElement('div');
+    agendaListContainer.id = 'niconico-agenda-list';
+    agendaListContainer.style.display = 'none';
+    document.body.appendChild(agendaListContainer);
+
+    return agendaListContainer;
+  }
+
+  // 全体アジェンダリストを更新
+  function updateAgendaList() {
+    if (!agendaListContainer) return;
+
+    const agendaKeys = Object.keys(agendas).sort((a, b) => Number(a) - Number(b));
+
+    if (agendaKeys.length === 0) {
+      agendaListContainer.style.display = 'none';
+      return;
+    }
+
+    let html = '<div class="agenda-list-title">📋 アジェンダ</div>';
+
+    agendaKeys.forEach((num) => {
+      const text = agendas[num];
+      const isActive = currentAgendaNum === num;
+      const className = isActive ? 'agenda-item active' : 'agenda-item inactive';
+
+      html += `
+        <div class="${className}">
+          <span class="item-number">${num}</span>
+          <span class="item-text">${text}</span>
+        </div>
+      `;
+    });
+
+    agendaListContainer.innerHTML = html;
+  }
+
+  // アジェンダを表示
+  function showAgenda(num) {
+    if (!agendaContainer) return;
+
+    const text = agendas[num];
+    if (!text) {
+      console.log('[Meet Niconico] Agenda not found:', num);
+      return;
+    }
+
+    // 現在のアジェンダ番号を記録
+    currentAgendaNum = num;
+
+    // 現在のアジェンダ表示を更新
+    agendaContainer.innerHTML = `<span class="agenda-number">${num}</span><span class="agenda-text">${text}</span>`;
+    agendaContainer.style.display = 'flex';
+
+    // 全体リストも表示・更新
+    if (agendaListContainer) {
+      agendaListContainer.style.display = 'block';
+      updateAgendaList();
+    }
+
+    console.log('[Meet Niconico] Show agenda:', num, text);
+  }
+
+  // アジェンダを非表示
+  function hideAgenda() {
+    if (!agendaContainer) return;
+
+    currentAgendaNum = null;
+    agendaContainer.style.display = 'none';
+
+    // 全体リストも非表示
+    if (agendaListContainer) {
+      agendaListContainer.style.display = 'none';
+    }
+
+    console.log('[Meet Niconico] Hide agenda');
+  }
+
+  // コマンドをチェック
+  function checkCommand(text) {
+    // /1, /2, /off, /0 などのコマンドをチェック
+    const match = text.match(/^\/(\d+|off|0)$/i);
+    if (!match) return false;
+
+    const cmd = match[1].toLowerCase();
+    if (cmd === 'off' || cmd === '0') {
+      hideAgenda();
+    } else {
+      showAgenda(cmd);
+    }
+    return true;
   }
 
   // コメントを流す
@@ -115,6 +228,13 @@
 
       // 処理済みとして記録（タイムスタンプ付き）
       processedMessages.set(textKey, now);
+
+      // コマンドかどうかチェック
+      if (checkCommand(text)) {
+        console.log('[Meet Niconico] Command detected:', text);
+        return; // コマンドは流さない
+      }
+
       flowComment(text, sender);
       console.log('[Meet Niconico] New message:', sender, text);
 
@@ -131,9 +251,11 @@
 
   // 設定を読み込む
   function loadSettings() {
-    chrome.storage.sync.get(['enabled'], (result) => {
+    chrome.storage.sync.get(['enabled', 'agendas'], (result) => {
       isEnabled = result.enabled !== false; // デフォルトは有効
+      agendas = result.agendas || {};
       console.log('[Meet Niconico] Enabled:', isEnabled);
+      console.log('[Meet Niconico] Agendas loaded:', Object.keys(agendas).length);
     });
   }
 
@@ -148,6 +270,10 @@
           // 無効化時は既存のコメントをクリア
           commentContainer.innerHTML = '';
         }
+      }
+      if (changes.agendas) {
+        agendas = changes.agendas.newValue || {};
+        console.log('[Meet Niconico] Agendas updated:', Object.keys(agendas).length);
       }
     });
   }
@@ -212,6 +338,8 @@
     console.log('[Meet Niconico] Initializing...');
 
     createCommentContainer();
+    createAgendaContainer();
+    createAgendaListContainer();
     loadSettings();
     watchSettings();
 

@@ -167,6 +167,49 @@
       color: rgba(255, 255, 255, 0.5);
       text-align: center;
     }
+
+    .section-title {
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    .agenda-section {
+      margin-top: 12px;
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
+    }
+
+    .agenda-input {
+      width: 100%;
+      min-height: 80px;
+      padding: 10px;
+      border: none;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.1);
+      color: #ffffff;
+      font-size: 12px;
+      font-family: inherit;
+      resize: vertical;
+      margin-bottom: 8px;
+    }
+
+    .agenda-input::placeholder {
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    .agenda-input:focus {
+      outline: none;
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    .agenda-help {
+      font-size: 10px;
+      color: rgba(255, 255, 255, 0.5);
+      margin-top: 4px;
+    }
   </style>
 </head>
 <body>
@@ -194,6 +237,28 @@
   <div class="api-section" id="apiSection" style="display: none;">
     <input type="password" id="apiKeyInput" class="test-input" placeholder="Anthropic API キーを入力...">
     <button id="saveApiKey" class="test-btn" style="background: linear-gradient(135deg, #4CAF50, #45a049); margin-bottom: 8px;">💾 APIキーを保存</button>
+  </div>
+
+  <div class="agenda-section">
+    <div class="section-title">📋 アジェンダ設定</div>
+    <textarea id="agendaInput" class="agenda-input" placeholder="1: プロジェクトAの進捗確認
+2: 来週のリリース計画
+3: 質疑応答"></textarea>
+    <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+      <button id="saveAgendaBtn" class="test-btn" style="background: linear-gradient(135deg, #4CAF50, #45a049); flex: 1;">💾 保存</button>
+      <label class="test-btn" style="background: linear-gradient(135deg, #2196F3, #1976D2); flex: 1; text-align: center; cursor: pointer;">
+        📄 CSV
+        <input type="file" id="csvImport" accept=".csv" style="display: none;">
+      </label>
+      <label class="test-btn" style="background: linear-gradient(135deg, #FF9800, #F57C00); flex: 1; text-align: center; cursor: pointer;">
+        📝 MD
+        <input type="file" id="jsonImport" accept=".json,.md,.txt" style="display: none;">
+      </label>
+    </div>
+    <div class="agenda-help">
+      チャットで /1, /2 などを送信するとアジェンダが表示されます<br>
+      /0 または /off で非表示 | CSVインポート可
+    </div>
   </div>
 
   <div class="test-section">
