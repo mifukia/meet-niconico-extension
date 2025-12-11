@@ -1,0 +1,84 @@
+/* Meet Niconico Comments - Styles */
+
+/* コメントコンテナ */
+#niconico-comment-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 9999;
+}
+
+/* 流れるコメント */
+.niconico-comment {
+  position: absolute;
+  right: -100%;
+  white-space: nowrap;
+  font-size: 28px;
+  font-weight: bold;
+  font-family: 'Hiragino Kaku Gothic ProN', 'メイリオ', sans-serif;
+  color: #ffffff;
+  text-shadow:
+    -1px -1px 0 #000,
+    1px -1px 0 #000,
+    -1px 1px 0 #000,
+    1px 1px 0 #000,
+    2px 2px 2px rgba(0, 0, 0, 0.5);
+  animation: flow-comment 7s linear forwards;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* コメントが右から左に流れるアニメーション */
+@keyframes flow-comment {
+  0% {
+    transform: translateX(0);
+    right: -100%;
+  }
+  100% {
+    transform: translateX(-200vw);
+    right: -100%;
+  }
+}
+
+/* コメントのバリエーション（色違い）*/
+.niconico-comment.red {
+  color: #ff0000;
+}
+
+.niconico-comment.blue {
+  color: #00bfff;
+}
+
+.niconico-comment.green {
+  color: #00ff00;
+}
+
+.niconico-comment.yellow {
+  color: #ffff00;
+}
+
+.niconico-comment.pink {
+  color: #ff69b4;
+}
+
+.niconico-comment.orange {
+  color: #ffa500;
+}
+
+.niconico-comment.purple {
+  color: #9400d3;
+}
+
+/* 大きいコメント */
+.niconico-comment.big {
+  font-size: 40px;
+}
+
+/* 小さいコメント */
+.niconico-comment.small {
+  font-size: 18px;
+}

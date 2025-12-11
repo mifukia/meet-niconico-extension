@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meet Niconico Comments</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      width: 280px;
+      padding: 16px;
+      font-family: 'Hiragino Kaku Gothic ProN', 'メイリオ', sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      color: #ffffff;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .logo {
+      font-size: 24px;
+    }
+
+    h1 {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .toggle-container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
+      margin-bottom: 12px;
+    }
+
+    .toggle-label {
+      font-size: 13px;
+    }
+
+    .toggle {
+      position: relative;
+      width: 50px;
+      height: 26px;
+    }
+
+    .toggle input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #4a4a5a;
+      transition: 0.3s;
+      border-radius: 26px;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 20px;
+      width: 20px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: 0.3s;
+      border-radius: 50%;
+    }
+
+    input:checked + .slider {
+      background: linear-gradient(135deg, #ff6b6b, #ff8e53);
+    }
+
+    input:checked + .slider:before {
+      transform: translateX(24px);
+    }
+
+    .test-section {
+      margin-top: 12px;
+    }
+
+    .test-input {
+      width: 100%;
+      padding: 10px;
+      border: none;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.1);
+      color: #ffffff;
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+
+    .test-input::placeholder {
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    .test-input:focus {
+      outline: none;
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    .test-btn {
+      width: 100%;
+      padding: 10px;
+      border: none;
+      border-radius: 6px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #ffffff;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .test-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    .test-btn:active {
+      transform: translateY(0);
+    }
+
+    .status {
+      margin-top: 12px;
+      padding: 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      text-align: center;
+    }
+
+    .status.success {
+      background: rgba(76, 175, 80, 0.2);
+      color: #81c784;
+    }
+
+    .status.info {
+      background: rgba(33, 150, 243, 0.2);
+      color: #64b5f6;
+    }
+
+    .footer {
+      margin-top: 16px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      font-size: 10px;
+      color: rgba(255, 255, 255, 0.5);
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <span class="logo">📺</span>
+    <h1>Meet Niconico Comments</h1>
+  </div>
+
+  <div class="toggle-container">
+    <span class="toggle-label">コメント表示</span>
+    <label class="toggle">
+      <input type="checkbox" id="enableToggle" checked>
+      <span class="slider"></span>
+    </label>
+  </div>
+
+  <div class="test-section">
+    <input type="text" id="testInput" class="test-input" placeholder="テストコメントを入力...">
+    <button id="testBtn" class="test-btn">🚀 テスト送信</button>
+  </div>
+
+  <div id="status" class="status info">
+    Google Meet のページで動作します
+  </div>
+
+  <div class="footer">
+    チャットに投稿されたメッセージが<br>ニコニコ風に画面を流れます
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
