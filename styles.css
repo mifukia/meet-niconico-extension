@@ -217,3 +217,42 @@
   color: #ffffff;
   line-height: 1.4;
 }
+
+/* 画面中央通知（フワッと出てフワッと消える） */
+.niconico-center-notification {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 24px 48px;
+  background: linear-gradient(135deg, rgba(76, 175, 80, 0.95) 0%, rgba(56, 142, 60, 0.95) 100%);
+  border-radius: 16px;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.4);
+  z-index: 10001;
+  pointer-events: none;
+  font-family: 'Hiragino Kaku Gothic ProN', 'メイリオ', sans-serif;
+  font-size: 24px;
+  font-weight: bold;
+  color: #ffffff;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  animation: center-notification 2.5s ease-in-out forwards;
+}
+
+@keyframes center-notification {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.8);
+  }
+  15% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  85% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.9);
+  }
+}

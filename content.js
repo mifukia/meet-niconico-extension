@@ -132,6 +132,40 @@
     return true;
   }
 
+  // アジェンダ共有データをチェック
+  function checkAgendaShare(text) {
+    // [AGENDA]{...} 形式をチェック
+    const match = text.match(/^\[AGENDA\](.+)$/);
+    if (!match) return false;
+
+    try {
+      const sharedAgendas = JSON.parse(match[1]);
+
+      // 有効なオブジェクトかチェック
+      if (typeof sharedAgendas !== 'object' || Array.isArray(sharedAgendas)) {
+        console.log('[Meet Niconico] Invalid agenda format');
+        return false;
+      }
+
+      // ローカルに保存（自分のアジェンダを上書き）
+      agendas = sharedAgendas;
+      chrome.storage.sync.set({ agendas: sharedAgendas }, () => {
+        console.log('[Meet Niconico] Agenda imported from chat:', Object.keys(sharedAgendas).length, 'items');
+      });
+
+      // 画面中央に通知を表示
+      showCenterNotification(`📋 アジェンダを受信しました（${Object.keys(sharedAgendas).length}件）`);
+
+      // 全体リストを更新
+      updateAgendaList();
+
+      return true;
+    } catch (e) {
+      console.log('[Meet Niconico] Failed to parse agenda JSON:', e);
+      return false;
+    }
+  }
+
   // コメントを流す
   function flowComment(text, author) {
     if (!isEnabled || !commentContainer) return;
@@ -230,6 +264,12 @@
       // 処理済みとして記録（タイムスタンプ付き）
       processedMessages.set(textKey, now);
 
+      // アジェンダ共有データかどうかチェック
+      if (checkAgendaShare(text)) {
+        console.log('[Meet Niconico] Agenda share detected:', text);
+        return; // 共有データは流さない
+      }
+
       // コマンドかどうかチェック
       if (checkCommand(text)) {
         console.log('[Meet Niconico] Command detected:', text);
@@ -310,6 +350,21 @@
     });
   }
 
+  // 画面中央に通知を表示（フワッと出てフワッと消える）
+  function showCenterNotification(text) {
+    const notification = document.createElement('div');
+    notification.className = 'niconico-center-notification';
+    notification.textContent = text;
+    document.body.appendChild(notification);
+
+    // アニメーション終了後に削除
+    notification.addEventListener('animationend', () => {
+      notification.remove();
+    });
+
+    console.log('[Meet Niconico] Center notification:', text);
+  }
+
   // AIコメントを流す（色を変えて区別）
   function flowAIComment(text) {
     if (!isEnabled || !commentContainer) return;
@@ -336,6 +391,73 @@
     console.log('[Meet Niconico] AI Comment:', text);
   }
 
+  // チャットにメッセージを送信
+  function sendChatMessage(text) {
+    // チャット入力欄を探す（複数のセレクタを試す）
+    const inputSelectors = [
+      'textarea[aria-label*="メッセージ"]',
+      'textarea[aria-label*="Send a message"]',
+      'textarea[aria-label*="message"]',
+      'textarea[jsname]',
+      'div[contenteditable="true"][aria-label*="メッセージ"]',
+      'div[contenteditable="true"][aria-label*="message"]'
+    ];
+
+    let inputEl = null;
+    for (const selector of inputSelectors) {
+      inputEl = document.querySelector(selector);
+      if (inputEl) break;
+    }
+
+    if (!inputEl) {
+      console.log('[Meet Niconico] Chat input not found. Is chat panel open?');
+      return { success: false, error: 'チャットパネルを開いてください' };
+    }
+
+    // テキストを入力
+    if (inputEl.tagName === 'TEXTAREA') {
+      inputEl.value = text;
+      inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+    } else {
+      // contenteditable の場合
+      inputEl.textContent = text;
+      inputEl.dispatchEvent(new InputEvent('input', { bubbles: true, data: text }));
+    }
+
+    // 送信ボタンを探してクリック
+    setTimeout(() => {
+      const sendSelectors = [
+        'button[aria-label*="送信"]',
+        'button[aria-label*="Send"]',
+        'button[data-mdc-dialog-action="send"]',
+        'button[jsname][data-idom-class*="send"]'
+      ];
+
+      let sendBtn = null;
+      for (const selector of sendSelectors) {
+        sendBtn = document.querySelector(selector);
+        if (sendBtn && !sendBtn.disabled) break;
+      }
+
+      // 送信ボタンが見つからない場合はEnterキーを送信
+      if (!sendBtn || sendBtn.disabled) {
+        inputEl.dispatchEvent(new KeyboardEvent('keydown', {
+          key: 'Enter',
+          code: 'Enter',
+          keyCode: 13,
+          which: 13,
+          bubbles: true
+        }));
+        console.log('[Meet Niconico] Sent message via Enter key');
+      } else {
+        sendBtn.click();
+        console.log('[Meet Niconico] Sent message via button click');
+      }
+    }, 100);
+
+    return { success: true };
+  }
+
   // ポップアップ・バックグラウンドからのメッセージを受信
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.type === 'TEST_COMMENT') {
@@ -345,6 +467,10 @@
     if (message.type === 'AI_COMMENT') {
       flowAIComment(message.text);
       sendResponse({ success: true });
+    }
+    if (message.type === 'SEND_CHAT') {
+      const result = sendChatMessage(message.text);
+      sendResponse(result);
     }
     return true;
   });

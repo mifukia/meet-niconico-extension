@@ -12,6 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const saveAgendaBtn = document.getElementById('saveAgendaBtn');
   const csvImport = document.getElementById('csvImport');
   const jsonImport = document.getElementById('jsonImport');
+  const shareAgendaBtn = document.getElementById('shareAgendaBtn');
   const testInput = document.getElementById('testInput');
   const testBtn = document.getElementById('testBtn');
   const status = document.getElementById('status');
@@ -306,6 +307,46 @@ document.addEventListener('DOMContentLoaded', () => {
 
     return result;
   }
+
+  // アジェンダを全員に共有
+  shareAgendaBtn.addEventListener('click', () => {
+    chrome.storage.sync.get(['agendas'], (result) => {
+      const agendas = result.agendas || {};
+
+      if (Object.keys(agendas).length === 0) {
+        showStatus('共有するアジェンダがありません', 'info');
+        return;
+      }
+
+      // JSON形式でチャットに送信するためのテキストを生成
+      const shareText = `[AGENDA]${JSON.stringify(agendas)}`;
+
+      // Google Meetのタブを探してチャットに直接送信
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        const tab = tabs[0];
+
+        if (!tab?.url?.includes('meet.google.com')) {
+          // Meetページでない場合はクリップボードにコピー
+          navigator.clipboard.writeText(shareText).then(() => {
+            showStatus('クリップボードにコピーしました', 'success');
+          });
+          return;
+        }
+
+        // content scriptにメッセージ送信を依頼
+        chrome.tabs.sendMessage(tab.id, { type: 'SEND_CHAT', text: shareText }, (response) => {
+          if (chrome.runtime.lastError || !response?.success) {
+            // 送信失敗時はクリップボードにコピー
+            navigator.clipboard.writeText(shareText).then(() => {
+              showStatus(response?.error || 'チャットパネルを開いてください。クリップボードにコピーしました', 'info');
+            });
+          } else {
+            showStatus('アジェンダを全員に共有しました！', 'success');
+          }
+        });
+      });
+    });
+  });
 
   // テスト送信
   testBtn.addEventListener('click', () => {
