@@ -279,8 +279,12 @@
         console.log('[Meet Niconico] Agenda Enabled changed to:', isAgendaEnabled);
 
         if (!isAgendaEnabled) {
-          // 無効化時はアジェンダを非表示
-          hideAgenda();
+          // 無効化時はアジェンダを非表示（番号は保持）
+          if (agendaContainer) agendaContainer.style.display = 'none';
+          if (agendaListContainer) agendaListContainer.style.display = 'none';
+        } else if (currentAgendaNum) {
+          // 有効化時に前回のアジェンダがあれば復元
+          showAgenda(currentAgendaNum);
         }
       }
       if (changes.agendas) {
