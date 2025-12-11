@@ -3,7 +3,9 @@
 document.addEventListener('DOMContentLoaded', () => {
   const enableToggle = document.getElementById('enableToggle');
   const aiToggle = document.getElementById('aiToggle');
+  const agendaToggle = document.getElementById('agendaToggle');
   const apiSection = document.getElementById('apiSection');
+  const agendaSection = document.getElementById('agendaSection');
   const apiKeyInput = document.getElementById('apiKeyInput');
   const saveApiKeyBtn = document.getElementById('saveApiKey');
   const agendaInput = document.getElementById('agendaInput');
@@ -15,10 +17,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const status = document.getElementById('status');
 
   // 設定を読み込む
-  chrome.storage.sync.get(['enabled', 'aiEnabled', 'apiKey', 'agendas'], (result) => {
+  chrome.storage.sync.get(['enabled', 'aiEnabled', 'agendaEnabled', 'apiKey', 'agendas'], (result) => {
     enableToggle.checked = result.enabled !== false;
     aiToggle.checked = result.aiEnabled === true;
+    agendaToggle.checked = result.agendaEnabled !== false;
     apiSection.style.display = result.aiEnabled ? 'block' : 'none';
+    agendaSection.style.display = result.agendaEnabled !== false ? 'block' : 'none';
     if (result.apiKey) {
       apiKeyInput.value = '••••••••••••••••';
       apiKeyInput.dataset.saved = 'true';
@@ -47,6 +51,15 @@ document.addEventListener('DOMContentLoaded', () => {
     chrome.storage.sync.set({ aiEnabled }, () => {
       apiSection.style.display = aiEnabled ? 'block' : 'none';
       showStatus(aiEnabled ? 'AIコメントを有効にしました' : 'AIコメントを無効にしました', 'success');
+    });
+  });
+
+  // アジェンダ表示トグル
+  agendaToggle.addEventListener('change', () => {
+    const agendaEnabled = agendaToggle.checked;
+    chrome.storage.sync.set({ agendaEnabled }, () => {
+      agendaSection.style.display = agendaEnabled ? 'block' : 'none';
+      showStatus(agendaEnabled ? 'アジェンダ表示を有効にしました' : 'アジェンダ表示を無効にしました', 'success');
     });
   });
 

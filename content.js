@@ -3,6 +3,7 @@
   'use strict';
 
   let isEnabled = true;
+  let isAgendaEnabled = true;
   let commentContainer = null;
   let agendaContainer = null;
   let agendaListContainer = null;
@@ -77,7 +78,7 @@
 
   // アジェンダを表示
   function showAgenda(num) {
-    if (!agendaContainer) return;
+    if (!agendaContainer || !isAgendaEnabled) return;
 
     const text = agendas[num];
     if (!text) {
@@ -251,10 +252,12 @@
 
   // 設定を読み込む
   function loadSettings() {
-    chrome.storage.sync.get(['enabled', 'agendas'], (result) => {
+    chrome.storage.sync.get(['enabled', 'agendaEnabled', 'agendas'], (result) => {
       isEnabled = result.enabled !== false; // デフォルトは有効
+      isAgendaEnabled = result.agendaEnabled !== false; // デフォルトは有効
       agendas = result.agendas || {};
       console.log('[Meet Niconico] Enabled:', isEnabled);
+      console.log('[Meet Niconico] Agenda Enabled:', isAgendaEnabled);
       console.log('[Meet Niconico] Agendas loaded:', Object.keys(agendas).length);
     });
   }
@@ -269,6 +272,15 @@
         if (!isEnabled && commentContainer) {
           // 無効化時は既存のコメントをクリア
           commentContainer.innerHTML = '';
+        }
+      }
+      if (changes.agendaEnabled) {
+        isAgendaEnabled = changes.agendaEnabled.newValue !== false;
+        console.log('[Meet Niconico] Agenda Enabled changed to:', isAgendaEnabled);
+
+        if (!isAgendaEnabled) {
+          // 無効化時はアジェンダを非表示
+          hideAgenda();
         }
       }
       if (changes.agendas) {

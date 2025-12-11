@@ -239,7 +239,15 @@
     <button id="saveApiKey" class="test-btn" style="background: linear-gradient(135deg, #4CAF50, #45a049); margin-bottom: 8px;">💾 APIキーを保存</button>
   </div>
 
-  <div class="agenda-section">
+  <div class="toggle-container">
+    <span class="toggle-label">アジェンダ表示</span>
+    <label class="toggle">
+      <input type="checkbox" id="agendaToggle" checked>
+      <span class="slider"></span>
+    </label>
+  </div>
+
+  <div class="agenda-section" id="agendaSection">
     <div class="section-title">📋 アジェンダ設定</div>
     <textarea id="agendaInput" class="agenda-input" placeholder="1: プロジェクトAの進捗確認
 2: 来週のリリース計画
