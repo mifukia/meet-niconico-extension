@@ -2,6 +2,8 @@
 
 Google Meet のチャットメッセージをニコニコ動画風に画面上に流す Chrome 拡張機能です。
 
+![ポップアップUI](images/popup-screenshot.png)
+
 ## インストール方法
 
 1. Chrome で `chrome://extensions/` を開く
